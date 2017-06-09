@@ -25,7 +25,7 @@ aptly repo add ubuntu *deb
 aptly snapshot create ubuntu_current from repo ubuntu
 aptly -architectures="amd64" -skip-signing=true publish snapshot -architectures="amd64" ubuntu_current
 
-cat > /etc/init.d/aptly << EOF
+cat > /etc/init.d/aptly << 'EOF'
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:
@@ -41,7 +41,7 @@ dir="/root/"
 cmd="/usr/bin/aptly serve"
 user="root"
 
-name=`basename $0`
+name=aptly
 pid_file="/var/run/$name.pid"
 stdout_log="/var/log/$name.log"
 stderr_log="/var/log/$name.err"
@@ -132,5 +132,5 @@ chown root:root /etc/init.d/aptly
 update-rc.d aptly defaults
 update-rc.d aptly enable
 
-
+/etc/init.d/aptly start
 
