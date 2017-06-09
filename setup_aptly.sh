@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 echo "deb http://repo.aptly.info/ squeeze main" > /etc/apt/sources.list.d/aptly.list
 apt-key adv --keyserver keys.gnupg.net --recv-keys 9E3E53F19C7DE460
 
@@ -15,10 +15,11 @@ aptly -distribution="trusty" -architectures=amd64 repo create ubuntu
 mkdir ubuntu_download
 cd ubuntu_download
 
-for i in postgresql-9.3 libdbi-perl perl-base libc-dev libc libc6-dev libc6 debconf policyrcd-script-zg2 gcc wget curl unzip tar python2.7 python2.7-dev openssl postgresql-client-common postgresql-common ssl-cert libpq5 postgresql postgresql-9.1 mysql-server mysql-client python python-dev 
+for i in postgresql-9.3 libdbi-perl perl-base libc-dev libc libc6-dev libc6 debconf policyrcd-script-zg2 gcc wget curl unzip zip tar python2.7 python2.7-dev openssl postgresql-client-common postgresql-common ssl-cert libpq5 postgresql postgresql-9.1 mysql-server mysql-client python python-dev 
 do
 apt-get download $i
 apt-get download $(apt-rdepends $i| grep -v "^ ")
+apt-get download $( apt-rdepends python-dev| egrep -v "debconf|libc-dev" | grep "Depends" | awk -F\: '{ print $2 }' | awk '{ print $1}' | sort -u )
 done
 
 aptly repo add ubuntu *deb
