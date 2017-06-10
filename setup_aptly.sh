@@ -3,6 +3,7 @@ echo "deb http://repo.aptly.info/ squeeze main" > /etc/apt/sources.list.d/aptly.
 apt-key adv --keyserver keys.gnupg.net --recv-keys 9E3E53F19C7DE460
 
 apt-get -y update
+apt-get -y install rng-tools
 apt-get -y install apt-rdepends
 apt-get -y install aptly
 
@@ -14,16 +15,38 @@ aptly -distribution="trusty" -architectures=amd64 repo create ubuntu
 mkdir ubuntu_download
 cd ubuntu_download
 
-for i in postgresql-9.3 libdbi-perl perl-base libc-dev libc libc6-dev libc6 debconf policyrcd-script-zg2 gcc wget curl unzip zip tar python2.7 python2.7-dev openssl postgresql-client-common postgresql-common ssl-cert libpq5 postgresql postgresql-9.1 mysql-server mysql-client python python-dev 
-do
-apt-get download $i
-apt-get download $(apt-rdepends $i| grep -v "^ ")
-apt-get download $( apt-rdepends python-dev| egrep -v "debconf|libc-dev" | grep "Depends" | awk -F\: '{ print $2 }' | awk '{ print $1}' | sort -u )
-done
+#for i in rng-tools postgresql-9.3 libdbi-perl perl-base libc-dev libc libc6-dev libc6 debconf policyrcd-script-zg2 gcc wget curl unzip zip tar python2.7 python2.7-dev openssl postgresql-client-common postgresql-common ssl-cert libpq5 postgresql postgresql-9.1 mysql-server mysql-client python python-dev 
+#do
+#apt-get download $i
+#apt-get download $(apt-rdepends $i| grep -v "^ ")
+#apt-get download $( apt-rdepends python-dev| egrep -v "debconf|libc-dev" | grep "Depends" | awk -F\: '{ print $2 }' | awk '{ print $1}' | sort -u )
+#done
 
-aptly repo add ubuntu *deb
-aptly snapshot create ubuntu_current from repo ubuntu
-aptly -architectures="amd64" -skip-signing=true publish snapshot -architectures="amd64" ubuntu_current
+#aptly repo add ubuntu *deb
+#aptly snapshot create ubuntu_current from repo ubuntu
+#aptly -architectures="amd64" -skip-signing=true publish snapshot -architectures="amd64" ubuntu_current
+
+cat >gpg_generate_key.answer <<EOF
+Key-Type: 1
+Key-Length: 2048
+Subkey-Type: 1
+Subkey-Length: 2048
+Name-Real: Thomas Leyer
+Name-Email: selecticon@googlemail.com
+Expire-Date: 0
+EOF
+gpg --batch --gen-key gpg_generate_key.answer
+apt-get -y install apache2
+gpg --export --armor > /var/www/html/trusty-ambari.pub
+
+## Import gpg keys from ubuntu
+gpg --no-default-keyring --keyring /usr/share/keyrings/ubuntu-archive-keyring.gpg --export | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+gpg --no-default-keyring --keyring trustedkeys.gpg --keyserver keys.gnupg.net --recv-keys 8B48AD6246925553 7638D0442B90D010 6FB2A1C265FFB764
+aptly mirror create -architectures=amd64 -filter='Priority (required) | Priority (important) | Priority (standard) | rng-tools|postgresql-9.3|libdbi-perl|perl-base|libc-dev|libc|libc6-dev|libc6|debconf|policyrcd-script-zg2|gcc|wget|curl|unzip|zip|tar|python2.7|python2.7-dev|openssl|postgresql-client-common|postgresql-common|ssl-cert|libpq5|postgresql|postgresql-9.1|mysql-server|mysql-client|python|python-de ' -filter-with-deps trusty-ambari http://archive.ubuntu.com/ubuntu trusty main
+aptly mirror update trusty-ambari
+aptly snapshot create ubuntu-ambari-10062017 from mirror trusty-ambari
+aptly publish snapshot ubuntu-ambari-10062017
+
 
 cat > /etc/init.d/aptly << 'EOF'
 #!/bin/sh
